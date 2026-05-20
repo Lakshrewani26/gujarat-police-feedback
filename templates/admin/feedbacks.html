@@ -1,0 +1,294 @@
+{% extends "admin/base_dashboard.html" %}
+{% block title %}Feedback Management{% endblock %}
+{% block page_title %}Feedback Management{% endblock %}
+{% block content %}
+
+<!-- Filters -->
+<div class="filter-card mb-4">
+    <form method="GET" id="filterForm">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small">Search</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Name, ID, feedback..." value="{{ request.args.get('search', '') }}">
+                </div>
+            </div>
+            {% if current_user.is_admin() %}
+            <div class="col-md-2">
+                <label class="form-label small">Station</label>
+                <select name="station_id" class="form-select form-select-sm">
+                    <option value="">All Stations</option>
+                    {% for s in stations %}
+                    <option value="{{ s.id }}" {% if request.args.get('station_id')|int == s.id %}selected{% endif %}>{{ s.station_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <label class="form-label small">Rating</label>
+                <select name="rating" class="form-select form-select-sm">
+                    <option value="">All Ratings</option>
+                    {% for r in range(5,0,-1) %}
+                    <option value="{{ r }}" {% if request.args.get('rating')|int == r %}selected{% endif %}>{{ r }} Star{{ 's' if r>1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Sentiment</label>
+                <select name="sentiment" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="positive" {% if request.args.get('sentiment') == 'positive' %}selected{% endif %}>Positive 😊</option>
+                    <option value="neutral" {% if request.args.get('sentiment') == 'neutral' %}selected{% endif %}>Neutral 😐</option>
+                    <option value="negative" {% if request.args.get('sentiment') == 'negative' %}selected{% endif %}>Negative 😔</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request.args.get('date_from', '') }}">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request.args.get('date_to', '') }}">
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-primary btn-sm px-3">Filter</button>
+                <a href="{{ url_for('feedbacks') }}" class="btn btn-outline-secondary btn-sm px-2">
+                    <i class="fas fa-rotate-right"></i>
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Export Bar -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="text-muted small">
+        Showing <strong>{{ feedbacks.total }}</strong> feedback records
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('export_csv') }}" class="btn btn-sm btn-success">
+            <i class="fas fa-file-csv me-1"></i>Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="chart-card">
+    <div class="table-responsive">
+        <table class="table gp-table align-middle">
+            <thead>
+                <tr>
+                    <th>Ack ID</th>
+                    <th>Citizen</th>
+                    <th>Station</th>
+                    <th>Ratings</th>
+                    <th>Overall</th>
+                    <th>Sentiment</th>
+                    <th>Complaint</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fb in feedbacks.items %}
+                <tr class="{% if fb.is_flagged %}row-flagged{% endif %}">
+                    <td><code class="ack-code">{{ fb.acknowledgment_id }}</code></td>
+                    <td>
+                        <div class="citizen-cell">
+                            <div class="citizen-avatar">{{ (fb.citizen_name or 'A')[0].upper() }}</div>
+                            <div>
+                                <div class="fw-medium">{{ fb.citizen_name or 'Anonymous' }}</div>
+                                <div class="text-muted small">{{ fb.gender.title() if fb.gender else '' }} · {{ fb.age_group.replace('_',' ') if fb.age_group else '' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">{{ fb.station.station_name if fb.station else 'N/A' }}</div>
+                        <div class="text-muted x-small">{{ fb.station.district if fb.station else '' }}</div>
+                    </td>
+                    <td>
+                        <div class="ratings-mini-grid">
+                            <span title="Behavior">B:{{ fb.behavior_rating or '—' }}</span>
+                            <span title="Response">R:{{ fb.response_rating or '—' }}</span>
+                            <span title="Cleanliness">C:{{ fb.cleanliness_rating or '—' }}</span>
+                            <span title="Helpfulness">H:{{ fb.helpfulness_rating or '—' }}</span>
+                            <span title="Transparency">T:{{ fb.transparency_rating or '—' }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if fb.overall_rating %}
+                        <div class="overall-badge rating-{{ fb.overall_rating }}">
+                            {{ fb.overall_rating }}★
+                        </div>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if fb.sentiment %}
+                        <span class="badge-sentiment {{ fb.sentiment }}">
+                            {{ '😊' if fb.sentiment == 'positive' else ('😔' if fb.sentiment == 'negative' else '😐') }}
+                            {{ fb.sentiment.title() }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if fb.complaint %}
+                        <button class="btn btn-xs btn-outline-danger view-complaint"
+                                data-complaint="{{ fb.complaint|e }}"
+                                data-category="{{ fb.complaint_category or 'other' }}">
+                            <i class="fas fa-exclamation-triangle me-1"></i>View
+                        </button>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ fb.submitted_at.strftime('%d %b %Y\n%H:%M') }}</td>
+                    <td>
+                        {% if fb.is_resolved %}
+                        <span class="badge bg-success-soft text-success">✓ Resolved</span>
+                        {% elif fb.complaint %}
+                        <span class="badge bg-danger-soft text-danger">⚠ Open</span>
+                        {% else %}
+                        <span class="badge bg-primary-soft text-primary">● Received</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-xs btn-outline-primary view-detail"
+                                    title="View Detail" data-id="{{ fb.id }}"
+                                    data-text="{{ fb.feedback_text|e or '' }}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            {% if not fb.is_resolved and fb.complaint %}
+                            <button class="btn btn-xs btn-outline-success resolve-btn"
+                                    title="Mark Resolved" data-id="{{ fb.id }}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-xs {{ 'btn-warning' if fb.is_flagged else 'btn-outline-warning' }} flag-btn"
+                                    title="{{ 'Unflag' if fb.is_flagged else 'Flag' }}" data-id="{{ fb.id }}">
+                                <i class="fas fa-flag"></i>
+                            </button>
+                            {% if current_user.is_admin() %}
+                            <button class="btn btn-xs btn-outline-danger delete-btn"
+                                    title="Delete" data-id="{{ fb.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-2x mb-3 d-block"></i>No feedback found
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if feedbacks.pages > 1 %}
+    <div class="d-flex justify-content-center p-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if feedbacks.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('feedbacks', page=feedbacks.prev_num, **request.args) }}">‹</a>
+                </li>
+                {% endif %}
+                {% for p in feedbacks.iter_pages() %}
+                <li class="page-item {% if p == feedbacks.page %}active{% endif %}">
+                    {% if p %}
+                    <a class="page-link" href="{{ url_for('feedbacks', page=p, **request.args) }}">{{ p }}</a>
+                    {% else %}
+                    <span class="page-link">…</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+                {% if feedbacks.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('feedbacks', page=feedbacks.next_num, **request.args) }}">›</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Feedback Detail</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+    </div></div>
+</div>
+
+<div class="modal fade" id="resolveModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Resolve Complaint</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="resolveFbId">
+            <div class="mb-3">
+                <label class="form-label">Resolution Note</label>
+                <textarea class="form-control" id="resolveNote" rows="3" placeholder="Describe the resolution..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" id="confirmResolve">
+                <i class="fas fa-check me-1"></i>Mark Resolved
+            </button>
+        </div>
+    </div></div>
+</div>
+
+<script>
+document.querySelectorAll('.view-complaint').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('detailBody').innerHTML = `
+            <div class="mb-2"><span class="badge bg-danger">${btn.dataset.category.replace('_',' ').toUpperCase()}</span></div>
+            <p>${btn.dataset.complaint}</p>`;
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
+    });
+});
+document.querySelectorAll('.view-detail').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('detailBody').innerHTML = btn.dataset.text || '<em class="text-muted">No written feedback</em>';
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
+    });
+});
+document.querySelectorAll('.resolve-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('resolveFbId').value = btn.dataset.id;
+        new bootstrap.Modal(document.getElementById('resolveModal')).show();
+    });
+});
+document.getElementById('confirmResolve').addEventListener('click', async () => {
+    const id = document.getElementById('resolveFbId').value;
+    const note = document.getElementById('resolveNote').value;
+    const res = await fetch(`/feedback/resolve/${id}`, {
+        method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:`note=${encodeURIComponent(note)}`
+    });
+    if((await res.json()).success) location.reload();
+});
+document.querySelectorAll('.flag-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const r = await fetch(`/feedback/flag/${btn.dataset.id}`, {method:'POST'});
+        if((await r.json()).success) location.reload();
+    });
+});
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if(!confirm('Delete this feedback? This cannot be undone.')) return;
+        const r = await fetch(`/feedback/delete/${btn.dataset.id}`, {method:'POST'});
+        if((await r.json()).success) btn.closest('tr').remove();
+    });
+});
+</script>
+{% endblock %}

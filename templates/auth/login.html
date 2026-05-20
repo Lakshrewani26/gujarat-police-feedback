@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Officer Login — Gujarat Police Feedback System{% endblock %}
+{% block body %}
+<div class="auth-wrapper">
+    <div class="auth-left">
+        <div class="auth-left-content">
+            <div class="auth-shield-icon">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2>Gujarat Police</h2>
+            <p>Citizen Feedback System</p>
+            <div class="auth-features">
+                <div class="auth-feat"><i class="fas fa-lock"></i><span>Secure Login</span></div>
+                <div class="auth-feat"><i class="fas fa-chart-line"></i><span>Real-time Analytics</span></div>
+                <div class="auth-feat"><i class="fas fa-comments"></i><span>Feedback Management</span></div>
+                <div class="auth-feat"><i class="fas fa-file-export"></i><span>Export Reports</span></div>
+            </div>
+            <div class="auth-quote">"Service with Integrity, Policing with Compassion"</div>
+        </div>
+        <div class="auth-left-pattern"></div>
+    </div>
+
+    <div class="auth-right">
+        <div class="auth-form-box">
+            <a href="{{ url_for('index') }}" class="auth-back">
+                <i class="fas fa-arrow-left me-2"></i>Back to Portal
+            </a>
+
+            <div class="auth-logo">
+                <div class="auth-logo-icon"><i class="fas fa-user-shield"></i></div>
+            </div>
+            <h3 class="auth-title">Officer Login</h3>
+            <p class="auth-subtitle">Access your dashboard with authorized credentials</p>
+
+            <form method="POST" action="{{ url_for('login') }}" id="loginForm" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+                <div class="form-group-modern mb-3">
+                    <label class="form-label-modern">Email Address</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" name="email" class="form-control form-control-modern"
+                               placeholder="officer@gujaratpolice.gov.in" required autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="form-group-modern mb-3">
+                    <label class="form-label-modern">Password</label>
+                    <div class="input-icon-wrap">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" name="password" id="passwordField"
+                               class="form-control form-control-modern"
+                               placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="input-eye" id="togglePwd">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="remember" id="rememberMe">
+                        <label class="form-check-label text-muted small" for="rememberMe">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-link small">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-auth w-100" id="loginBtn">
+                    <span class="btn-text"><i class="fas fa-right-to-bracket me-2"></i>Sign In</span>
+                    <span class="btn-loading d-none">
+                        <span class="spinner-border spinner-border-sm me-2"></span>Authenticating...
+                    </span>
+                </button>
+            </form>
+
+            <div class="auth-demo-info mt-4">
+                <div class="demo-badge"><i class="fas fa-circle-info me-2"></i>Demo Credentials</div>
+                <div class="demo-creds">
+                    <div><strong>Email:</strong> admin@gujaratpolice.gov.in</div>
+                    <div><strong>Password:</strong> Admin@1234</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('togglePwd').addEventListener('click', function() {
+    const field = document.getElementById('passwordField');
+    const icon = this.querySelector('i');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+});
+document.getElementById('loginForm').addEventListener('submit', function() {
+    document.querySelector('.btn-text').classList.add('d-none');
+    document.querySelector('.btn-loading').classList.remove('d-none');
+});
+</script>
+{% endblock %}

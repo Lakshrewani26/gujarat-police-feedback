@@ -1,0 +1,237 @@
+{% extends "admin/base_dashboard.html" %}
+{% block title %}Dashboard — Gujarat Police Feedback System{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+{% block content %}
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon blue"><i class="fas fa-comments"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">{{ total }}</div>
+                <div class="kpi-label">Total Feedback</div>
+                <div class="kpi-sub"><i class="fas fa-arrow-up text-success me-1"></i>{{ today_count }} today</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon saffron"><i class="fas fa-star"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">{{ avg_rating }}<span class="kpi-unit">/5</span></div>
+                <div class="kpi-label">Average Rating</div>
+                <div class="kpi-sub">
+                    {% for i in range(5) %}
+                    <i class="fas fa-star {% if i < avg_rating|int %}text-warning{% else %}text-muted{% endif %}" style="font-size:10px"></i>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon red"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">{{ complaints }}</div>
+                <div class="kpi-label">Complaints</div>
+                <div class="kpi-sub">{{ resolved }} resolved</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+            <div class="kpi-icon green"><i class="fas fa-face-smile"></i></div>
+            <div class="kpi-body">
+                <div class="kpi-value">{{ positive }}</div>
+                <div class="kpi-label">Positive Feedback</div>
+                <div class="kpi-sub text-danger">{{ negative }} negative</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h6 class="chart-title"><i class="fas fa-chart-line me-2 text-primary"></i>Weekly Feedback Trend</h6>
+            </div>
+            <div class="chart-body">
+                <canvas id="weeklyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h6 class="chart-title"><i class="fas fa-chart-pie me-2 text-saffron"></i>Sentiment Analysis</h6>
+            </div>
+            <div class="chart-body d-flex align-items-center justify-content-center">
+                <canvas id="sentimentChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h6 class="chart-title"><i class="fas fa-bar-chart me-2 text-success"></i>Rating Distribution</h6>
+            </div>
+            <div class="chart-body">
+                <canvas id="ratingChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h6 class="chart-title"><i class="fas fa-building-shield me-2 text-info"></i>Station Performance</h6>
+            </div>
+            <div class="chart-body">
+                <canvas id="stationChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Feedback Table -->
+<div class="chart-card">
+    <div class="chart-header d-flex justify-content-between align-items-center">
+        <h6 class="chart-title mb-0"><i class="fas fa-clock me-2 text-primary"></i>Recent Feedback</h6>
+        <a href="{{ url_for('feedbacks') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table gp-table">
+            <thead>
+                <tr>
+                    <th>Ack ID</th>
+                    <th>Station</th>
+                    <th>Rating</th>
+                    <th>Sentiment</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fb in recent %}
+                <tr>
+                    <td><code class="ack-code">{{ fb.acknowledgment_id }}</code></td>
+                    <td>{{ fb.station.station_name if fb.station else 'N/A' }}</td>
+                    <td>
+                        <div class="rating-mini">
+                            {% if fb.overall_rating %}
+                            {% for i in range(fb.overall_rating) %}
+                            <i class="fas fa-star text-warning" style="font-size:11px"></i>
+                            {% endfor %}
+                            {% for i in range(5 - fb.overall_rating) %}
+                            <i class="fas fa-star text-muted" style="font-size:11px"></i>
+                            {% endfor %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if fb.sentiment %}
+                        <span class="badge-sentiment {{ fb.sentiment }}">
+                            {{ '😊' if fb.sentiment == 'positive' else ('😔' if fb.sentiment == 'negative' else '😐') }}
+                            {{ fb.sentiment.title() }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ fb.submitted_at.strftime('%d %b, %H:%M') }}</td>
+                    <td>
+                        {% if fb.is_resolved %}
+                        <span class="badge bg-success-soft text-success">Resolved</span>
+                        {% elif fb.complaint %}
+                        <span class="badge bg-danger-soft text-danger">Complaint</span>
+                        {% else %}
+                        <span class="badge bg-primary-soft text-primary">Received</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No feedback yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const weeklyData = {{ weekly_data|safe }};
+const ratingDist = {{ rating_dist|safe }};
+const stationPerf = {{ station_perf|safe }};
+
+// Weekly Line Chart
+new Chart(document.getElementById('weeklyChart'), {
+    type: 'line',
+    data: {
+        labels: weeklyData.map(d => d.day),
+        datasets: [{
+            label: 'Feedback Count',
+            data: weeklyData.map(d => d.count),
+            borderColor: '#1a237e',
+            backgroundColor: 'rgba(26,35,126,0.08)',
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#1a237e',
+            pointRadius: 5
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// Sentiment Doughnut
+new Chart(document.getElementById('sentimentChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Positive', 'Neutral', 'Negative'],
+        datasets: [{
+            data: [{{ positive }}, {{ total - positive - negative }}, {{ negative }}],
+            backgroundColor: ['#4caf50', '#ff9800', '#f44336'],
+            borderWidth: 0,
+            hoverOffset: 4
+        }]
+    },
+    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10 } } } }
+});
+
+// Rating Bar Chart
+new Chart(document.getElementById('ratingChart'), {
+    type: 'bar',
+    data: {
+        labels: ['★1', '★2', '★3', '★4', '★5'],
+        datasets: [{
+            label: 'Count',
+            data: ratingDist,
+            backgroundColor: ['#f44336','#ff9800','#ffc107','#8bc34a','#4caf50'],
+            borderRadius: 6,
+            borderWidth: 0
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// Station Performance Bar
+if (stationPerf.length > 0) {
+    new Chart(document.getElementById('stationChart'), {
+        type: 'bar',
+        data: {
+            labels: stationPerf.map(s => s.name),
+            datasets: [{
+                label: 'Avg Rating',
+                data: stationPerf.map(s => s.avg),
+                backgroundColor: 'rgba(26,35,126,0.75)',
+                borderRadius: 6,
+                borderWidth: 0
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 5, ticks: { stepSize: 1 } } } }
+    });
+}
+</script>
+{% endblock %}

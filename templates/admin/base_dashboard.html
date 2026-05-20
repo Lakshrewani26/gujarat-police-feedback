@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">
+                <img src="{{ url_for('static', filename='images/gujarat-police-logo.svg') }}" alt="Logo" onerror="this.style.display='none'">
+                <div class="brand-shield"><i class="fas fa-shield-halved"></i></div>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">Gujarat Police</span>
+                <span class="brand-sub">Feedback System</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <span class="nav-label">Main</span>
+                <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i><span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('feedbacks') }}" class="nav-item {% if request.endpoint == 'feedbacks' %}active{% endif %}">
+                    <i class="fas fa-comments"></i><span>Feedback</span>
+                    <span class="nav-badge" id="feedback-count"></span>
+                </a>
+            </div>
+            {% if current_user.is_admin() %}
+            <div class="nav-section">
+                <span class="nav-label">Management</span>
+                <a href="{{ url_for('stations') }}" class="nav-item {% if request.endpoint == 'stations' %}active{% endif %}">
+                    <i class="fas fa-building-shield"></i><span>Police Stations</span>
+                </a>
+                <a href="{{ url_for('officers') }}" class="nav-item {% if request.endpoint == 'officers' %}active{% endif %}">
+                    <i class="fas fa-user-shield"></i><span>Officers</span>
+                </a>
+            </div>
+            {% endif %}
+            <div class="nav-section">
+                <span class="nav-label">Reports</span>
+                <a href="{{ url_for('export_csv') }}" class="nav-item">
+                    <i class="fas fa-file-csv"></i><span>Export CSV</span>
+                </a>
+                <a href="{{ url_for('index') }}" class="nav-item" target="_blank">
+                    <i class="fas fa-globe"></i><span>Public Portal</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="officer-card">
+                <div class="officer-avatar">{{ current_user.name[0].upper() }}</div>
+                <div class="officer-info">
+                    <span class="officer-name">{{ current_user.name }}</span>
+                    <span class="officer-role">{{ current_user.role.title() }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn" title="Logout">
+                    <i class="fas fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="top-bar">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="top-bar-title">{% block page_title %}Dashboard{% endblock %}</div>
+            <div class="top-bar-actions">
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="notif-wrapper">
+                    <button class="notif-btn" id="notifBtn">
+                        <i class="fas fa-bell"></i>
+                        {% if notifications %}
+                        <span class="notif-badge">{{ notifications if notifications is number else notifications|length }}</span>
+                        {% endif %}
+                    </button>
+                </div>
+                <div class="top-user">
+                    <div class="top-avatar">{{ current_user.name[0].upper() }}</div>
+                    <span>{{ current_user.name.split()[0] }}</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+{% endblock %}

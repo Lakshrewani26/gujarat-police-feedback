@@ -1,0 +1,153 @@
+{% extends "admin/base_dashboard.html" %}
+{% block title %}Officers{% endblock %}
+{% block page_title %}Officers Management{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="text-muted small">{{ officers|length }} officer(s) registered</div>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addOfficerModal">
+        <i class="fas fa-user-plus me-2"></i>Add Officer
+    </button>
+</div>
+
+<div class="chart-card">
+    <div class="table-responsive">
+        <table class="table gp-table align-middle">
+            <thead>
+                <tr>
+                    <th>Officer</th>
+                    <th>Badge No.</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Rank</th>
+                    <th>Station</th>
+                    <th>Last Login</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for officer in officers %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="officer-avatar-sm">{{ officer.name[0].upper() }}</div>
+                            <strong>{{ officer.name }}</strong>
+                        </div>
+                    </td>
+                    <td><code>{{ officer.badge_number or '—' }}</code></td>
+                    <td class="text-muted small">{{ officer.email }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-primary' if officer.role == 'admin' else 'bg-secondary' }}">
+                            {{ officer.role.title() }}
+                        </span>
+                    </td>
+                    <td class="small">{{ officer.rank or '—' }}</td>
+                    <td class="small">{{ officer.station.station_name if officer.station else 'HQ' }}</td>
+                    <td class="text-muted small">
+                        {{ officer.last_login.strftime('%d %b %Y') if officer.last_login else 'Never' }}
+                    </td>
+                    <td>
+                        <span class="badge {{ 'bg-success-soft text-success' if officer.is_active else 'bg-secondary' }}">
+                            {{ 'Active' if officer.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No officers registered</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Officer Modal -->
+<div class="modal fade" id="addOfficerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add New Officer</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <form id="addOfficerForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Officer's full name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Badge Number</label>
+                        <input type="text" name="badge_number" class="form-control" placeholder="e.g., GUJ2024001">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email *</label>
+                        <input type="email" name="email" class="form-control" required placeholder="officer@gujaratpolice.gov.in">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" class="form-control" placeholder="Mobile number">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select">
+                            <option value="officer">Officer</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Rank</label>
+                        <select name="rank" class="form-select">
+                            <option value="">Select Rank</option>
+                            {% for r in ['Constable','Head Constable','ASI','SI','PI','DySP','SP','DIG','IG','DGP'] %}
+                            <option value="{{ r }}">{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Assigned Station</label>
+                        <select name="station_id" class="form-select">
+                            <option value="">HQ / No Station</option>
+                            {% for s in stations %}
+                            <option value="{{ s.id }}">{{ s.station_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Password *</label>
+                        <input type="password" name="password" class="form-control" required
+                               placeholder="Min 8 characters" minlength="8">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Confirm Password *</label>
+                        <input type="password" name="confirm_password" class="form-control" required placeholder="Repeat password">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="submitOfficer">
+                <i class="fas fa-user-plus me-1"></i>Add Officer
+            </button>
+        </div>
+    </div></div>
+</div>
+
+<script>
+document.getElementById('submitOfficer').addEventListener('click', async () => {
+    const form = document.getElementById('addOfficerForm');
+    const data = new FormData(form);
+    if (data.get('password') !== data.get('confirm_password')) {
+        alert('Passwords do not match!');
+        return;
+    }
+    const res = await fetch('/officers/add', { method:'POST', body: data });
+    const result = await res.json();
+    if (result.success) {
+        bootstrap.Modal.getInstance(document.getElementById('addOfficerModal')).hide();
+        location.reload();
+    } else {
+        alert('Error: ' + (result.error || 'Failed to add officer'));
+    }
+});
+</script>
+{% endblock %}

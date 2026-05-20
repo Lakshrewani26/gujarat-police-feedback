@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}Submit Feedback — {{ station.station_name }}{% endblock %}
+{% block body %}
+<div class="feedback-wrapper">
+
+    <!-- Header -->
+    <header class="feedback-header">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="fb-header-shield"><i class="fas fa-shield-halved"></i></div>
+                    <div>
+                        <div class="fb-header-title">Gujarat Police</div>
+                        <div class="fb-header-sub">Citizen Feedback System</div>
+                    </div>
+                </div>
+                <div class="fb-secure-badge">
+                    <i class="fas fa-lock me-1"></i> Secure & Anonymous
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container py-4">
+
+        <!-- Station Banner -->
+        <div class="station-banner mb-4">
+            <div class="station-banner-icon"><i class="fas fa-building-shield"></i></div>
+            <div>
+                <h4 class="station-banner-name">{{ station.station_name }}</h4>
+                <div class="station-banner-meta">
+                    <span><i class="fas fa-map-marker-alt me-1"></i>{{ station.district }}</span>
+                    {% if station.contact_number %}
+                    <span><i class="fas fa-phone me-1"></i>{{ station.contact_number }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="feedback-progress mb-4">
+            <div class="progress-steps">
+                <div class="prog-step active" id="step1-ind"><div class="prog-dot">1</div><span>Your Info</span></div>
+                <div class="prog-line"></div>
+                <div class="prog-step" id="step2-ind"><div class="prog-dot">2</div><span>Ratings</span></div>
+                <div class="prog-line"></div>
+                <div class="prog-step" id="step3-ind"><div class="prog-dot">3</div><span>Comments</span></div>
+            </div>
+        </div>
+
+        <form id="feedbackForm" enctype="multipart/form-data" novalidate>
+            <input type="hidden" name="station_id" value="{{ station.id }}">
+
+            <!-- Step 1: Citizen Info -->
+            <div class="form-step active" id="step1">
+                <div class="feedback-card">
+                    <div class="feedback-card-header">
+                        <i class="fas fa-user-circle"></i>
+                        <h5>Your Information <span class="text-muted">(Optional)</span></h5>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="citizen_name" class="form-control form-control-fb"
+                                   placeholder="Your name (optional)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Mobile Number</label>
+                            <input type="tel" name="mobile" class="form-control form-control-fb"
+                                   placeholder="10-digit mobile number" maxlength="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gender</label>
+                            <select name="gender" class="form-select form-control-fb">
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                                <option value="prefer_not_to_say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Age Group</label>
+                            <select name="age_group" class="form-select form-control-fb">
+                                <option value="">Select Age Group</option>
+                                <option value="under_18">Under 18</option>
+                                <option value="18_25">18–25</option>
+                                <option value="26_35">26–35</option>
+                                <option value="36_45">36–45</option>
+                                <option value="46_60">46–60</option>
+                                <option value="above_60">Above 60</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="step-actions mt-4">
+                        <button type="button" class="btn btn-primary btn-next" onclick="nextStep(2)">
+                            Next: Rate Service <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Ratings -->
+            <div class="form-step" id="step2">
+                <div class="feedback-card">
+                    <div class="feedback-card-header">
+                        <i class="fas fa-star"></i>
+                        <h5>Rate Your Experience</h5>
+                    </div>
+
+                    <div class="rating-items">
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <i class="fas fa-user-tie me-2 text-primary"></i>
+                                Staff Behavior
+                            </div>
+                            <div class="star-rating" data-field="behavior_rating">
+                                {% for i in range(1,6) %}
+                                <button type="button" class="star-btn" data-val="{{ i }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="behavior_rating" value="0">
+                            <div class="rating-emoji"></div>
+                        </div>
+
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <i class="fas fa-clock me-2 text-warning"></i>
+                                Response Time
+                            </div>
+                            <div class="star-rating" data-field="response_rating">
+                                {% for i in range(1,6) %}
+                                <button type="button" class="star-btn" data-val="{{ i }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="response_rating" value="0">
+                            <div class="rating-emoji"></div>
+                        </div>
+
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <i class="fas fa-broom me-2 text-success"></i>
+                                Cleanliness
+                            </div>
+                            <div class="star-rating" data-field="cleanliness_rating">
+                                {% for i in range(1,6) %}
+                                <button type="button" class="star-btn" data-val="{{ i }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="cleanliness_rating" value="0">
+                            <div class="rating-emoji"></div>
+                        </div>
+
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <i class="fas fa-hands-helping me-2 text-info"></i>
+                                Helpfulness
+                            </div>
+                            <div class="star-rating" data-field="helpfulness_rating">
+                                {% for i in range(1,6) %}
+                                <button type="button" class="star-btn" data-val="{{ i }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="helpfulness_rating" value="0">
+                            <div class="rating-emoji"></div>
+                        </div>
+
+                        <div class="rating-item">
+                            <div class="rating-label">
+                                <i class="fas fa-eye me-2 text-purple"></i>
+                                Transparency
+                            </div>
+                            <div class="star-rating" data-field="transparency_rating">
+                                {% for i in range(1,6) %}
+                                <button type="button" class="star-btn" data-val="{{ i }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="transparency_rating" value="0">
+                            <div class="rating-emoji"></div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Rating -->
+                    <div class="overall-rating-section">
+                        <h6>Overall Satisfaction</h6>
+                        <div class="overall-stars" id="overallStars">
+                            {% for i in range(1,6) %}
+                            <button type="button" class="overall-star" data-val="{{ i }}">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="overall_rating" value="0">
+                        <div class="overall-label" id="overallLabel">Tap to rate</div>
+                    </div>
+
+                    <div class="step-actions mt-4 d-flex gap-3">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep(1)">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <button type="button" class="btn btn-primary btn-next flex-fill" onclick="nextStep(3)">
+                            Next: Comments <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Comments & Complaint -->
+            <div class="form-step" id="step3">
+                <div class="feedback-card">
+                    <div class="feedback-card-header">
+                        <i class="fas fa-comment-alt"></i>
+                        <h5>Your Comments</h5>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Feedback / Suggestions</label>
+                        <textarea name="feedback_text" class="form-control form-control-fb"
+                                  rows="4" placeholder="Share your experience..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Complaint (if any)</label>
+                        <select name="complaint_category" class="form-select form-control-fb mb-2">
+                            <option value="">Select complaint category (optional)</option>
+                            <option value="corruption">Corruption / Bribery</option>
+                            <option value="misconduct">Misconduct</option>
+                            <option value="delay">Undue Delay</option>
+                            <option value="rude_behavior">Rude Behavior</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <textarea name="complaint" class="form-control form-control-fb"
+                                  rows="3" placeholder="Describe your complaint in detail..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Upload Evidence (optional)</label>
+                        <div class="upload-zone" id="uploadZone">
+                            <input type="file" name="image" accept="image/*" id="imageInput" class="d-none">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload or drag & drop</p>
+                            <span class="text-muted small">PNG, JPG, GIF up to 5MB</span>
+                        </div>
+                        <div id="imagePreview" class="mt-2 d-none">
+                            <img id="previewImg" class="img-thumbnail" style="max-height:120px">
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="clearImage()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="privacy-note">
+                        <i class="fas fa-shield-alt me-2 text-primary"></i>
+                        <span>Your feedback is securely stored. Personal information is optional and never shared publicly.</span>
+                    </div>
+
+                    <div class="step-actions mt-4 d-flex gap-3">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2)">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <button type="submit" class="btn btn-success btn-submit flex-fill" id="submitBtn">
+                            <span class="submit-text"><i class="fas fa-paper-plane me-2"></i>Submit Feedback</span>
+                            <span class="submit-loading d-none">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Submitting...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content success-modal">
+                <div class="modal-body text-center py-5">
+                    <div class="success-animation">
+                        <div class="success-circle">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </div>
+                    <h4 class="mt-4">Feedback Submitted!</h4>
+                    <p class="text-muted">Thank you for helping improve Gujarat Police services.</p>
+                    <div class="ack-id-box" id="ackIdBox">
+                        <span class="text-muted small">Acknowledgment ID</span>
+                        <div class="ack-id" id="ackId"></div>
+                    </div>
+                    <p class="small text-muted mt-3">Please save this ID for future reference.</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-home me-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/feedback.js') }}"></script>
+{% endblock %}

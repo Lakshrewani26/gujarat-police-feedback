@@ -1,0 +1,149 @@
+{% extends "admin/base_dashboard.html" %}
+{% block title %}Police Stations{% endblock %}
+{% block page_title %}Police Stations{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="text-muted small">{{ stations|length }} station(s) registered</div>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStationModal">
+        <i class="fas fa-plus me-2"></i>Add Station
+    </button>
+</div>
+
+<div class="row g-4">
+    {% for station in stations %}
+    <div class="col-md-6 col-lg-4">
+        <div class="station-mgmt-card">
+            <div class="station-mgmt-header">
+                <div class="station-mgmt-icon">
+                    <i class="fas fa-building-shield"></i>
+                </div>
+                <div class="flex-fill">
+                    <h6 class="station-mgmt-name">{{ station.station_name }}</h6>
+                    <div class="station-mgmt-code">{{ station.station_code }} · {{ station.district }}</div>
+                </div>
+                <span class="badge {{ 'bg-success' if station.is_active else 'bg-secondary' }}">
+                    {{ 'Active' if station.is_active else 'Inactive' }}
+                </span>
+            </div>
+            <div class="station-mgmt-body">
+                {% if station.address %}
+                <div class="station-detail"><i class="fas fa-map-marker-alt"></i>{{ station.address }}</div>
+                {% endif %}
+                {% if station.contact_number %}
+                <div class="station-detail"><i class="fas fa-phone"></i>{{ station.contact_number }}</div>
+                {% endif %}
+                <div class="station-stats-row">
+                    <div class="station-stat">
+                        <div class="station-stat-val">{{ station.feedback_count() }}</div>
+                        <div class="station-stat-label">Feedback</div>
+                    </div>
+                    <div class="station-stat">
+                        <div class="station-stat-val">{{ station.avg_rating() }}</div>
+                        <div class="station-stat-label">Avg Rating</div>
+                    </div>
+                    <div class="station-stat">
+                        <div class="station-stat-val">{{ station.officers.count() }}</div>
+                        <div class="station-stat-label">Officers</div>
+                    </div>
+                </div>
+            </div>
+            <div class="station-mgmt-footer">
+                {% if station.qr_code_path %}
+                <div class="qr-preview-wrap">
+                    <img src="{{ url_for('static', filename=station.qr_code_path) }}"
+                         alt="QR Code" class="qr-preview-img">
+                    <div class="qr-preview-label">Scan to submit feedback</div>
+                </div>
+                {% endif %}
+                <div class="d-flex gap-2 mt-3">
+                    {% if station.qr_code_path %}
+                    <a href="{{ url_for('get_station_qr', station_id=station.id) }}"
+                       class="btn btn-sm btn-outline-primary flex-fill">
+                        <i class="fas fa-download me-1"></i>Download QR
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('feedback_form', station_code=station.station_code) }}"
+                       class="btn btn-sm btn-outline-success" target="_blank" title="Preview Form">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{{ url_for('feedbacks', station_id=station.id) }}"
+                       class="btn btn-sm btn-outline-info" title="View Feedback">
+                        <i class="fas fa-comments"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5 text-muted">
+        <i class="fas fa-building-shield fa-3x mb-3 d-block"></i>
+        No stations added yet. Click "Add Station" to begin.
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Add Station Modal -->
+<div class="modal fade" id="addStationModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Add Police Station</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <form id="addStationForm">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Station Name *</label>
+                        <input type="text" name="station_name" class="form-control" required
+                               placeholder="e.g., Ahmedabad City Police Station">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">District *</label>
+                        <select name="district" class="form-select" required>
+                            <option value="">Select District</option>
+                            {% for d in ['Ahmedabad','Surat','Vadodara','Rajkot','Gandhinagar','Bhavnagar','Jamnagar','Junagadh','Kutch','Mehsana','Anand','Nadiad','Bharuch','Navsari','Valsad'] %}
+                            <option value="{{ d }}">{{ d }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Station Code *</label>
+                        <input type="text" name="station_code" class="form-control" required
+                               placeholder="e.g., AMD002" maxlength="20" style="text-transform:uppercase">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Address</label>
+                        <input type="text" name="address" class="form-control" placeholder="Full address">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Contact Number</label>
+                        <input type="text" name="contact_number" class="form-control" placeholder="Landline/Mobile">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="submitStation">
+                <i class="fas fa-plus me-1"></i>Add Station & Generate QR
+            </button>
+        </div>
+    </div></div>
+</div>
+
+<script>
+document.getElementById('submitStation').addEventListener('click', async () => {
+    const form = document.getElementById('addStationForm');
+    const data = new FormData(form);
+    const res = await fetch('/stations/add', { method:'POST', body: data });
+    const result = await res.json();
+    if (result.success) {
+        bootstrap.Modal.getInstance(document.getElementById('addStationModal')).hide();
+        location.reload();
+    } else {
+        alert('Error: ' + (result.error || 'Failed to add station'));
+    }
+});
+</script>
+{% endblock %}
