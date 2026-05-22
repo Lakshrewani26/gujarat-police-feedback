@@ -4,4 +4,4 @@ builder = "NIXPACKS"
 [deploy]
 startCommand = "gunicorn app:app --bind 0.0.0.0:8080"
 restartPolicyType = "ON_FAILURE"
-preDeployCommand = "flask init-db"
+preDeployCommand = "python regenerate_qr.py"

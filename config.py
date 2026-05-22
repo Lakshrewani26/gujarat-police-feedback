@@ -14,8 +14,8 @@ class Config:
     WTF_CSRF_ENABLED = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    BASE_URL = os.environ.get('BASE_URL') or 'http://192.168.1.3:5000'
-
+    BASE_URL = os.environ.get('BASE_URL') or 'https://gujarat-police-feedback-production.up.railway.app'
+    
 class DevelopmentConfig(Config):
     DEBUG = True
 
